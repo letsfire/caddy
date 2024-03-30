@@ -2,11 +2,17 @@ package cdn
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
+
+func init() {
+	httpcaddyfile.RegisterHandlerDirective("cdn_auth", parseCdnAuthCaddyfile)
+}
 
 type Auth struct {
 	parser *JwtParser
@@ -19,7 +25,10 @@ func (Auth) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-func (p *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+func (p *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+	if !strings.HasPrefix(r.URL.Path, "/caddy/cdn/auth") {
+		return next.ServeHTTP(w, r)
+	}
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		token = r.Header.Get("x-access-token")
@@ -60,7 +69,13 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 	return nil
 }
 
+func parseCdnAuthCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var a Auth
+	err := a.UnmarshalCaddyfile(h.Dispenser)
+	return &a, err
+}
+
 var (
-	_ caddyhttp.Handler     = (*Auth)(nil)
-	_ caddyfile.Unmarshaler = (*Auth)(nil)
+	_ caddyhttp.MiddlewareHandler = (*Auth)(nil)
+	_ caddyfile.Unmarshaler       = (*Auth)(nil)
 )
