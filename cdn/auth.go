@@ -8,10 +8,6 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
-func init() {
-	caddy.RegisterModule(Auth{})
-}
-
 type Auth struct {
 	parser *JwtParser
 }
