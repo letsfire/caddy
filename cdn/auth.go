@@ -6,19 +6,14 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
-
-func init() {
-	httpcaddyfile.RegisterHandlerDirective("cdn_auth", parseCdnAuthCaddyfile)
-}
 
 type Auth struct {
 	parser *JwtParser
 }
 
-func (Auth) CaddyModule() caddy.ModuleInfo {
+func (*Auth) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "http.handlers.cdn_auth",
 		New: func() caddy.Module { return new(Auth) },
@@ -52,7 +47,7 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 			switch d.Val() {
 			case "key_file":
 				if d.NextArg() {
-					p.parser, err = NewJwtParser(d.Val())
+					//p.parser, err = NewJwtParser(d.Val())
 					return err
 				}
 				if d.NextArg() {
@@ -67,12 +62,6 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 		return d.Err("key file is empty")
 	}
 	return nil
-}
-
-func parseCdnAuthCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var a Auth
-	err := a.UnmarshalCaddyfile(h.Dispenser)
-	return &a, err
 }
 
 var (
