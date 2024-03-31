@@ -1,35 +1,27 @@
 package cdn
 
 import (
+	"github.com/golang-jwt/jwt/v5"
 	"os"
-
-	"github.com/golang-jwt/jwt"
 )
-
-// JwtClaims JWT请求体
-type JwtClaims struct {
-	jwt.StandardClaims
-	Data map[string]interface{} `json:"data"`
-}
 
 // JwtParser JWT解析器
 type JwtParser struct {
 	keyFunc jwt.Keyfunc
 }
 
-func (p *JwtParser) Decode(s string) (*JwtClaims, error) {
-	token, err := jwt.ParseWithClaims(s, &JwtClaims{}, p.keyFunc)
-	return token.Claims.(*JwtClaims), err
+func (p *JwtParser) Decode(s string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(s, p.keyFunc)
+	return token.Claims.(jwt.MapClaims), err
 }
 
 func NewJwtParser(keyFile string) (*JwtParser, error) {
 	var parser = new(JwtParser)
-	if data, err := os.ReadFile(keyFile); err != nil {
-		return parser, err
-	} else {
+	data, err := os.ReadFile(keyFile)
+	if err == nil {
 		parser.keyFunc = func(t *jwt.Token) (interface{}, error) {
 			return jwt.ParseRSAPublicKeyFromPEM(data)
 		}
-		return parser, nil
 	}
+	return parser, err
 }

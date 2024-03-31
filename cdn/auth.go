@@ -1,6 +1,7 @@
 package cdn
 
 import (
+	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"net/http"
 	"strings"
 
@@ -9,9 +10,13 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
-type Auth struct {
-	parser *JwtParser
+var parser *JwtParser
+
+func init() {
+	httpcaddyfile.RegisterHandlerDirective("cdn_auth", ParseCaddyfile)
 }
+
+type Auth struct{}
 
 func (*Auth) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
@@ -24,13 +29,13 @@ func (p *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.
 	if !strings.HasPrefix(r.URL.Path, "/caddy/cdn/auth") {
 		return next.ServeHTTP(w, r)
 	}
-	token := r.URL.Query().Get("token")
+	token := r.Header.Get("x-access-token")
 	if token == "" {
-		token = r.Header.Get("x-access-token")
+		token = r.URL.Query().Get("token")
 	}
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
-	} else if _, err := p.parser.Decode(token); err != nil {
+	} else if _, err := parser.Decode(token); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
 		w.WriteHeader(http.StatusOK)
@@ -47,7 +52,7 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 			switch d.Val() {
 			case "key_file":
 				if d.NextArg() {
-					//p.parser, err = NewJwtParser(d.Val())
+					parser, err = NewJwtParser(d.Val())
 					return err
 				}
 				if d.NextArg() {
@@ -58,10 +63,15 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 			}
 		}
 	}
-	if p.parser == nil {
+	if parser == nil {
 		return d.Err("key file is empty")
 	}
 	return nil
+}
+
+func ParseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var a = new(Auth)
+	return a, a.UnmarshalCaddyfile(h.Dispenser)
 }
 
 var (
