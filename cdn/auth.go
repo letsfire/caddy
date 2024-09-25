@@ -3,6 +3,7 @@ package cdn
 import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/caddyserver/caddy/v2"
@@ -14,6 +15,13 @@ var parser *JwtParser
 
 func init() {
 	httpcaddyfile.RegisterHandlerDirective("cdn_auth", ParseCaddyfile)
+}
+
+func getParam(r *http.Request, headerKey string, queryKey string) string {
+	if headerVal := r.Header.Get(headerKey); headerVal != "" {
+		return headerVal
+	}
+	return r.URL.Query().Get(queryKey)
 }
 
 type Auth struct{}
@@ -29,15 +37,16 @@ func (p *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.
 	if !strings.HasPrefix(r.URL.Path, "/caddy/cdn/auth") {
 		return next.ServeHTTP(w, r)
 	}
-	token := r.Header.Get("x-access-token")
-	if token == "" {
-		token = r.URL.Query().Get("token")
-	}
-	if token == "" {
+	resId := getParam(r, "x-resource-id", "id")
+	token := getParam(r, "x-access-token", "token")
+	if token == "" || len(resId) < 9 {
 		w.WriteHeader(http.StatusUnauthorized)
-	} else if _, err := parser.Decode(token); err != nil {
+	} else if data, err := parser.Decode(token); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
+		if strings.HasPrefix(resId[7:], strconv.Itoa(data["user_id"].(int))+"u") {
+
+		}
 		w.WriteHeader(http.StatusOK)
 	}
 	return nil
