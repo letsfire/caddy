@@ -3,7 +3,6 @@ package cdn
 import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/caddyserver/caddy/v2"
@@ -37,16 +36,12 @@ func (p *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.
 	if !strings.HasPrefix(r.URL.Path, "/caddy/cdn/auth") {
 		return next.ServeHTTP(w, r)
 	}
-	resId := getParam(r, "x-resource-id", "id")
 	token := getParam(r, "x-access-token", "token")
-	if token == "" || len(resId) < 9 {
+	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
-	} else if data, err := parser.Decode(token); err != nil {
+	} else if _, err := parser.Decode(token); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
-		if strings.HasPrefix(resId[7:], strconv.Itoa(data["user_id"].(int))+"u") {
-
-		}
 		w.WriteHeader(http.StatusOK)
 	}
 	return nil
