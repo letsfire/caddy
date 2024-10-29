@@ -1,27 +1,11 @@
 package cdn
 
 import (
-	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
-	"net/http"
-	"strings"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"net/http"
 )
-
-var parser *JwtParser
-
-func init() {
-	httpcaddyfile.RegisterHandlerDirective("cdn_auth", ParseCaddyfile)
-}
-
-func getParam(r *http.Request, headerKey string, queryKey string) string {
-	if headerVal := r.Header.Get(headerKey); headerVal != "" {
-		return headerVal
-	}
-	return r.URL.Query().Get(queryKey)
-}
 
 type Auth struct{}
 
@@ -33,18 +17,15 @@ func (*Auth) CaddyModule() caddy.ModuleInfo {
 }
 
 func (p *Auth) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	if !strings.HasPrefix(r.URL.Path, "/caddy/cdn/auth") {
-		return next.ServeHTTP(w, r)
-	}
 	token := getParam(r, "x-access-token", "token")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
-	} else if _, err := parser.Decode(token); err != nil {
+	} else if _, err := jwtParser.Decode(token); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
-	return nil
+	return next.ServeHTTP(w, r)
 }
 
 func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
@@ -56,7 +37,7 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 			switch d.Val() {
 			case "key_file":
 				if d.NextArg() {
-					parser, err = NewJwtParser(d.Val())
+					jwtParser, err = NewJwtParser(d.Val())
 					return err
 				}
 				if d.NextArg() {
@@ -67,15 +48,10 @@ func (p *Auth) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 			}
 		}
 	}
-	if parser == nil {
+	if jwtParser == nil {
 		return d.Err("key file is empty")
 	}
 	return nil
-}
-
-func ParseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var a = new(Auth)
-	return a, a.UnmarshalCaddyfile(h.Dispenser)
 }
 
 var (
