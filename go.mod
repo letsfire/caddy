@@ -5,6 +5,7 @@ go 1.23.1
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/caddyserver/caddy/v2 v2.8.4
+	github.com/davidbyttow/govips/v2 v2.15.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 )
 
@@ -27,7 +28,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
-	github.com/davidbyttow/govips/v2 v2.15.0 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
