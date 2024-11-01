@@ -122,6 +122,9 @@ func thumbnail(data []byte, video bool) ([]byte, error) {
 	if err == nil {
 		err = img.ThumbnailWithSize(240, 240, vips.InterestingNone, vips.SizeDown)
 	}
+	if err != nil {
+		return nil, err
+	}
 	res, _, err := img.ExportNative()
 	return res, err
 }
