@@ -1,6 +1,6 @@
 module github.com/letsfire/caddy
 
-go 1.22.8
+go 1.20
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
