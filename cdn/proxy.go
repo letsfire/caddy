@@ -31,7 +31,12 @@ func (p *Proxy) CaddyModule() caddy.ModuleInfo {
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	key := getParam(r, "x-encrypt-key", "key")
+	token := getParam(r, "x-access-token", "token")
+	claims, err := jwtParser.Decode(token)
+	if err != nil {
+		return err
+	}
+	var key = fmt.Sprintf("vvtime.%d#123456!", claims["user_id"])
 	process := r.URL.Query().Get("x-oss-process")
 	size, err := strconv.Atoi(strings.TrimLeft(process, "image/resize,l_"))
 	if err != nil {
