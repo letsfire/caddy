@@ -31,6 +31,8 @@ func (p *Proxy) CaddyModule() caddy.ModuleInfo {
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+
+	return next.ServeHTTP(w, r)
 	token := getParam(r, "x-access-token", "token")
 	claims, err := jwtParser.Decode(token)
 	if err != nil {
