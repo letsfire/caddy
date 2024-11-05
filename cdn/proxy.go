@@ -34,28 +34,28 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	token := getParam(r, "x-access-token", "token")
 	claims, err := jwtParser.Decode(token)
 	if err != nil {
-		return err
+		return fmt.Errorf("token decode - %s", err)
 	}
 	var key = fmt.Sprintf("vvtime.%d#123456!", claims["user_id"])
 	process := r.URL.Query().Get("x-oss-process")
 	size, err := strconv.Atoi(strings.TrimLeft(process, "image/resize,l_"))
 	if err != nil {
-		return err
+		return fmt.Errorf("process size - %s", err)
 	}
 	if strings.HasPrefix(r.URL.Path, "/proxy/vod") {
 		if cover, err := videoCover(r.URL.Path[10:], key); err != nil {
-			return err
+			return fmt.Errorf("video cover - %s", err)
 		} else if res, err := getObject(cover, ""); err != nil {
-			return err
+			return fmt.Errorf("video cover - %s", err)
 		} else {
 			_, _ = w.Write(res)
 			return next.ServeHTTP(w, r)
 		}
 	} else {
 		if res, err := getObject(r.URL.Path[10:], key); err != nil {
-			return err
+			return fmt.Errorf("get object - %s", err)
 		} else if res, err = thumbnail(res, size); err != nil {
-			return err
+			return fmt.Errorf("get thumbnail - %s", err)
 		} else {
 			_, _ = w.Write(res)
 			return next.ServeHTTP(w, r)
