@@ -10,8 +10,10 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/davidbyttow/govips/v2/vips"
 	"io"
+	"math"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -30,18 +32,29 @@ func (p *Proxy) CaddyModule() caddy.ModuleInfo {
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	key := getParam(r, "x-encrypt-key", "key")
-	vod := strings.HasPrefix(r.URL.Path, "/proxy/vod") // 是否视频
-	if reader, err := ossBucket.GetObject(r.URL.Path[10:]); err != nil {
+	process := r.URL.Query().Get("x-oss-process")
+	size, err := strconv.Atoi(strings.TrimLeft(process, "image/resize,l_"))
+	if err != nil {
 		return err
-	} else if res, err := io.ReadAll(reader); err != nil {
-		return err
-	} else if res, err = decrypt([]byte(key), res); err != nil {
-		return err
-	} else if res, err = thumbnail(res, vod); err != nil {
-		return err
+	}
+	if strings.HasPrefix(r.URL.Path, "/proxy/vod") {
+		if cover, err := videoCover(r.URL.Path[10:], key); err != nil {
+			return err
+		} else if res, err := getObject(cover, ""); err != nil {
+			return err
+		} else {
+			_, _ = w.Write(res)
+			return next.ServeHTTP(w, r)
+		}
 	} else {
-		_, _ = w.Write(res)
-		return next.ServeHTTP(w, r)
+		if res, err := getObject(r.URL.Path[10:], key); err != nil {
+			return err
+		} else if res, err = thumbnail(res, size); err != nil {
+			return err
+		} else {
+			_, _ = w.Write(res)
+			return next.ServeHTTP(w, r)
+		}
 	}
 }
 
@@ -107,24 +120,47 @@ func decrypt(key, ciphertext []byte) ([]byte, error) {
 	return plaintext[:(length - padding)], nil
 }
 
-func thumbnail(data []byte, video bool) ([]byte, error) {
-	if video {
-		cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-ss", "00:00:00", "-vframes", "1", "pipe:1")
-		cmd.Stdin = bytes.NewReader(data)
-		var out bytes.Buffer
-		cmd.Stdout = &out
-		if err := cmd.Run(); err != nil {
-			return nil, err
-		}
-		data = out.Bytes() // 视频第一帧
-	}
+func thumbnail(data []byte, size int) ([]byte, error) {
+	size = int(math.Max(float64(size), 240))
 	img, err := vips.NewImageFromBuffer(data)
 	if err == nil {
-		err = img.ThumbnailWithSize(240, 240, vips.InterestingNone, vips.SizeDown)
+		err = img.ThumbnailWithSize(size, size, vips.InterestingNone, vips.SizeDown)
 	}
 	if err != nil {
 		return nil, err
 	}
 	res, _, err := img.ExportNative()
 	return res, err
+}
+
+func videoCover(object, key string) (string, error) {
+	var cover = "/cover/" + object + ".jpg"
+	if exist, err := ossBucket.IsObjectExist(cover); exist {
+		return cover, err
+	}
+	if res, err := getObject(object, key); err != nil {
+		return cover, err
+	} else {
+		var out bytes.Buffer
+		cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-ss", "00:00:00", "-vframes", "1", "pipe:1")
+		cmd.Stdout = &out
+		cmd.Stdin = bytes.NewReader(res)
+		if err := cmd.Run(); err == nil {
+			err = ossBucket.PutObject(cover, &out)
+		}
+		return cover, err
+	}
+}
+
+func getObject(object, key string) ([]byte, error) {
+	if reader, err := ossBucket.GetObject(object); err != nil {
+		return nil, err
+	} else if res, err := io.ReadAll(reader); err != nil {
+		return nil, err
+	} else {
+		if key == "" {
+			return res, nil
+		}
+		return decrypt([]byte(key), res)
+	}
 }
