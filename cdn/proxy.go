@@ -148,8 +148,9 @@ func videoCover(object, key string) (string, error) {
 	if res, err := getObject(object, key); err != nil {
 		return cover, err
 	} else {
-		_ = os.WriteFile(object, res, os.ModePerm)
-		defer os.Remove(object) // 清除临时文件
+		var tmpFile = fmt.Sprintf("/%s", object)
+		_ = os.WriteFile(tmpFile, res, os.ModePerm)
+		defer os.Remove(tmpFile) // 清除临时文件
 		var out = bytes.NewBuffer(nil)
 		cmd := exec.Command(
 			"ffmpeg", "-i", object, "-ss", "00:00:00",
