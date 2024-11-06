@@ -140,9 +140,9 @@ func thumbnail(data []byte, size int) ([]byte, error) {
 }
 
 func videoCover(object, key string) (string, error) {
-	var cover = "/cover" + object + ".jpg"
-	if exist, err := ossBucket.IsObjectExist(cover); exist {
-		return cover, err
+	var cover = "cover" + object + ".jpg"
+	if exist, err := ossBucket.IsObjectExist(cover); exist && err == nil {
+		return cover, nil
 	}
 	if res, err := getObject(object, key); err != nil {
 		return cover, err
