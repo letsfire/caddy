@@ -147,12 +147,16 @@ func videoCover(object, key string) (string, error) {
 	if res, err := getObject(object, key); err != nil {
 		return cover, err
 	} else {
-		var out bytes.Buffer
+		var out = bytes.NewBuffer(nil)
 		cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-ss", "00:00:00", "-vframes", "1", "pipe:1")
-		cmd.Stdout = &out
+		cmd.Stdout = out
 		cmd.Stdin = bytes.NewReader(res)
 		if err := cmd.Run(); err == nil {
-			err = ossBucket.PutObject(cover, &out)
+			if out.Len() == 0 {
+				err = fmt.Errorf("ffmpeg output empty")
+			} else {
+				err = ossBucket.PutObject(cover, out)
+			}
 		}
 		return cover, err
 	}
