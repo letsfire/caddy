@@ -45,7 +45,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	if err != nil {
 		errorResponse(err, w)
 	} else if strings.HasPrefix(r.URL.Path, "/proxy/vod") {
-		if cover, err := videoCover(r.URL.Path[10:], key); err != nil {
+		if cover, err := videoCover(r.URL.Path[11:], key); err != nil {
 			errorResponse(err, w)
 		} else if res, err := getObject(cover, ""); err != nil {
 			errorResponse(err, w)
@@ -53,7 +53,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 			_, _ = w.Write(res)
 		}
 	} else {
-		if res, err := getObject(r.URL.Path[10:], key); err != nil {
+		if res, err := getObject(r.URL.Path[11:], key); err != nil {
 			errorResponse(err, w)
 		} else if res, err = thumbnail(res, size); err != nil {
 			errorResponse(err, w)
@@ -140,9 +140,9 @@ func thumbnail(data []byte, size int) ([]byte, error) {
 }
 
 func videoCover(object, key string) (string, error) {
-	var cover = "cover" + object + ".jpg"
+	var cover = fmt.Sprintf("cover/%s.jpg", object)
 	if exist, err := ossBucket.IsObjectExist(cover); exist && err == nil {
-		return "test", nil
+		return cover, nil
 	}
 	if res, err := getObject(object, key); err != nil {
 		return cover, err
@@ -158,13 +158,12 @@ func videoCover(object, key string) (string, error) {
 				err = ossBucket.PutObject(cover, out)
 			}
 		}
-		return cover, err
+		return "cover", err
 	}
 }
 
 func getObject(object, key string) ([]byte, error) {
 	object, _ = url.QueryUnescape(object)
-	object = strings.TrimPrefix(object, "/")
 	if reader, err := ossBucket.GetObject(object); err != nil {
 		return nil, fmt.Errorf("%s - %s", err.Error(), object)
 	} else if res, err := io.ReadAll(reader); err != nil {
