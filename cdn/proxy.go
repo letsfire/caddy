@@ -148,12 +148,12 @@ func videoCover(object, key string) (string, error) {
 		return cover, err
 	} else {
 		var out = bytes.NewBuffer(nil)
-		cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-ss", "00:00:00", "-vframes", "1", "-f", "image2pipe", "pipe:1")
+		cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-ss", "00:00:00", "-vframes", "1", "pipe:1")
 		cmd.Stdout = out
 		cmd.Stderr = out
 		cmd.Stdin = bytes.NewReader(res)
 		if err := cmd.Run(); err != nil {
-			return cover, err
+			return cover, fmt.Errorf("%s - %s", err, out.Bytes())
 		} else if out.Len() == 0 {
 			return cover, fmt.Errorf("ffmpeg output empty")
 		} else {
