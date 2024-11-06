@@ -110,7 +110,7 @@ var (
 func decrypt(key, ciphertext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s - %s", err, key)
 	}
 	blockSize := block.BlockSize()
 	if len(ciphertext)%blockSize != 0 {
