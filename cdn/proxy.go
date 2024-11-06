@@ -38,7 +38,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 		errorResponse(err, w)
 		return next.ServeHTTP(w, r)
 	}
-	var key = fmt.Sprintf("vvtime.%d#123456!", claims["user_id"])
+	var user = int(claims["user_id"].(float64))
+	var key = fmt.Sprintf("vvtime.%d#123456!", user)
 	process := r.URL.Query().Get("x-oss-process")
 	size, err := strconv.Atoi(strings.TrimLeft(process, "image/resize,l_"))
 	if err != nil {
