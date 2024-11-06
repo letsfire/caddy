@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -147,9 +148,10 @@ func videoCover(object, key string) (string, error) {
 	if res, err := getObject(object, key); err != nil {
 		return cover, err
 	} else {
+		_ = os.WriteFile(object, res, os.ModePerm)
 		var out = bytes.NewBuffer(nil)
 		cmd := exec.Command(
-			"ffmpeg", "-i", "pipe:0", "-ss", "00:00:00",
+			"ffmpeg", "-i", object, "-ss", "00:00:00",
 			"-vframes", "1", "-f", "image2pipe", "pipe:1",
 		)
 		cmd.Stdout = out
