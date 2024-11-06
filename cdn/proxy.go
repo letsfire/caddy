@@ -160,9 +160,9 @@ func videoCover(object, key string) (string, error) {
 func getObject(object, key string) ([]byte, error) {
 	object, _ = url.QueryUnescape(object)
 	if reader, err := ossBucket.GetObject(object); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s - %s", err.Error(), object)
 	} else if res, err := io.ReadAll(reader); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s - %s", err.Error(), object)
 	} else {
 		if key == "" {
 			return res, nil
