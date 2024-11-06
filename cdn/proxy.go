@@ -12,6 +12,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -138,7 +139,7 @@ func thumbnail(data []byte, size int) ([]byte, error) {
 }
 
 func videoCover(object, key string) (string, error) {
-	var cover = "/cover/" + object + ".jpg"
+	var cover = "/cover" + object + ".jpg"
 	if exist, err := ossBucket.IsObjectExist(cover); exist {
 		return cover, err
 	}
@@ -157,6 +158,7 @@ func videoCover(object, key string) (string, error) {
 }
 
 func getObject(object, key string) ([]byte, error) {
+	object, _ = url.QueryUnescape(object)
 	if reader, err := ossBucket.GetObject(object); err != nil {
 		return nil, err
 	} else if res, err := io.ReadAll(reader); err != nil {
