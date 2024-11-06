@@ -18,6 +18,12 @@ func getParam(r *http.Request, headerKey string, queryKey string) string {
 	return r.URL.Query().Get(queryKey)
 }
 
+// errorResponse 异常响应
+func errorResponse(e error, w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	_, _ = w.Write([]byte(e.Error()))
+}
+
 func init() {
 	httpcaddyfile.RegisterHandlerDirective("cdn_auth", ParseCdnAuthFile)
 	httpcaddyfile.RegisterHandlerDirective("cdn_proxy", ParseCdnProxyFile)
