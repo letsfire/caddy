@@ -158,7 +158,7 @@ func videoCover(object, key string) (string, error) {
 				err = ossBucket.PutObject(cover, out)
 			}
 		}
-		return "cover", err
+		return cover, err
 	}
 }
 
