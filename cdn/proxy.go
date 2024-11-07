@@ -40,13 +40,14 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 		errorResponse(err, w)
 		return next.ServeHTTP(w, r)
 	}
+	var file = path.Base(r.URL.Path)
 	var user = int(claims["user_id"].(float64))
 	var key = fmt.Sprintf(encryptKey, user)
 	process := r.URL.Query().Get("x-oss-process")
 	size, err := strconv.Atoi(strings.TrimPrefix(process, "image/resize,l_"))
 	if err != nil {
 		errorResponse(err, w)
-	} else if isImage(r.URL.Path[1:]) {
+	} else if file[0:1] <= "k" { // 图片
 		if res, err := getObject(r.URL.Path[1:], key); err != nil {
 			errorResponse(err, w)
 		} else if res, err = thumbnail(res, size); err != nil {
@@ -143,10 +144,6 @@ func thumbnail(data []byte, size int) ([]byte, error) {
 	}
 	res, _, err := img.ExportNative()
 	return res, err
-}
-
-func isImage(object string) bool {
-	return object[0:1] >= "a" && object[0:1] <= "k"
 }
 
 func videoCover(object, key string) (string, error) {
