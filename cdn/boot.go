@@ -9,6 +9,7 @@ import (
 
 var jwtParser *JwtParser
 var ossBucket *oss.Bucket
+var encryptKey string
 
 // getParam 从header或query获取参数值
 func getParam(r *http.Request, headerKey string, queryKey string) string {

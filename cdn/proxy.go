@@ -40,7 +40,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 		return next.ServeHTTP(w, r)
 	}
 	var user = int(claims["user_id"].(float64))
-	var key = fmt.Sprintf("vvtime.%d#123456!", user)
+	var key = fmt.Sprintf(encryptKey, user)
 	process := r.URL.Query().Get("x-oss-process")
 	size, err := strconv.Atoi(strings.TrimLeft(process, "image/resize,l_"))
 	if err != nil {
@@ -91,6 +91,10 @@ func (p *Proxy) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			case "oss_access_key_secret":
 				if d.NextArg() {
 					accessKeySecret = d.Val()
+				}
+			case "encrypt_key":
+				if d.NextArg() {
+					encryptKey = d.Val()
 				}
 			default:
 				return d.Errf("unrecognized subdirective '%s'", d.Val())
@@ -149,8 +153,13 @@ func videoCover(object, key string) (string, error) {
 		return cover, err
 	} else {
 		var tmpFile = fmt.Sprintf("/%s", object)
-		_ = os.WriteFile(tmpFile, res, os.ModePerm)
-		defer os.Remove(tmpFile) // 清除临时文件
+		err = os.WriteFile(tmpFile, res, os.ModePerm)
+		if err != nil {
+			return cover, fmt.Errorf("%s - %s", err, tmpFile)
+		}
+		defer func(name string) {
+			_ = os.Remove(name)
+		}(tmpFile) // 清除临时文件
 		var out = bytes.NewBuffer(nil)
 		cmd := exec.Command(
 			"ffmpeg", "-i", tmpFile, "-ss", "00:00:00",
