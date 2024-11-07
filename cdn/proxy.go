@@ -43,12 +43,12 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	var file = path.Base(r.URL.Path)
 	var user = int(claims["user_id"].(float64))
 	var key = fmt.Sprintf(encryptKey, user)
-	process := r.URL.Query().Get("x-oss-process")
-	size, err := strconv.Atoi(strings.TrimPrefix(process, "image/resize,l_"))
-	if err != nil {
-		errorResponse(err, w)
-	} else if file[0:1] <= "k" { // 图片
-		if res, err := getObject(r.URL.Path[1:], key); err != nil {
+	if file[0:1] <= "k" { // 图片
+		process := r.URL.Query().Get("x-oss-process")
+		size, err := strconv.Atoi(strings.TrimPrefix(process, "image/resize,l_"))
+		if err != nil {
+			errorResponse(err, w)
+		} else if res, err := getObject(r.URL.Path[1:], key); err != nil {
 			errorResponse(err, w)
 		} else if res, err = thumbnail(res, size); err != nil {
 			errorResponse(err, w)
