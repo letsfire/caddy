@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -153,6 +154,7 @@ func videoCover(object, key string) (string, error) {
 		return cover, err
 	} else {
 		var tmpFile = fmt.Sprintf("/%s", object)
+		_ = os.MkdirAll(path.Dir(tmpFile), os.ModePerm)
 		err = os.WriteFile(tmpFile, res, os.ModePerm)
 		if err != nil {
 			return cover, fmt.Errorf("%s - %s", err, tmpFile)
