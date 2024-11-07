@@ -46,18 +46,18 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	size, err := strconv.Atoi(strings.TrimPrefix(process, "image/resize,l_"))
 	if err != nil {
 		errorResponse(err, w)
-	} else if strings.HasPrefix(r.URL.Path, "/proxy/vod") {
-		if cover, err := videoCover(r.URL.Path[11:], key); err != nil {
+	} else if isImage(r.URL.Path[1:]) {
+		if res, err := getObject(r.URL.Path[1:], key); err != nil {
 			errorResponse(err, w)
-		} else if res, err := getObject(cover, ""); err != nil {
+		} else if res, err = thumbnail(res, size); err != nil {
 			errorResponse(err, w)
 		} else {
 			_, _ = w.Write(res)
 		}
 	} else {
-		if res, err := getObject(r.URL.Path[11:], key); err != nil {
+		if cover, err := videoCover(r.URL.Path[1:], key); err != nil {
 			errorResponse(err, w)
-		} else if res, err = thumbnail(res, size); err != nil {
+		} else if res, err := getObject(cover, ""); err != nil {
 			errorResponse(err, w)
 		} else {
 			_, _ = w.Write(res)
@@ -143,6 +143,10 @@ func thumbnail(data []byte, size int) ([]byte, error) {
 	}
 	res, _, err := img.ExportNative()
 	return res, err
+}
+
+func isImage(object string) bool {
+	return object[0:1] >= "a" && object[0:1] <= "k"
 }
 
 func videoCover(object, key string) (string, error) {
