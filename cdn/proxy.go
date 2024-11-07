@@ -153,7 +153,7 @@ func videoCover(object, key string) (string, error) {
 		defer os.Remove(tmpFile) // 清除临时文件
 		var out = bytes.NewBuffer(nil)
 		cmd := exec.Command(
-			"ffmpeg", "-i", object, "-ss", "00:00:00",
+			"ffmpeg", "-i", tmpFile, "-ss", "00:00:00",
 			"-vframes", "1", "-f", "image2pipe", "pipe:1",
 		)
 		cmd.Stdout = out
