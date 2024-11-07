@@ -43,7 +43,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	var user = int(claims["user_id"].(float64))
 	var key = fmt.Sprintf(encryptKey, user)
 	process := r.URL.Query().Get("x-oss-process")
-	size, err := strconv.Atoi(strings.TrimLeft(process, "image/resize,l_"))
+	size, err := strconv.Atoi(strings.TrimPrefix(process, "image/resize,l_"))
 	if err != nil {
 		errorResponse(err, w)
 	} else if strings.HasPrefix(r.URL.Path, "/proxy/vod") {
