@@ -5,6 +5,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"net/http"
+	"net/url"
 )
 
 var jwtParser *JwtParser
@@ -16,7 +17,8 @@ func getParam(r *http.Request, headerKey string, queryKey string) string {
 	if headerVal := r.Header.Get(headerKey); headerVal != "" {
 		return headerVal
 	}
-	return r.URL.Query().Get(queryKey)
+	queryVal, _ := url.QueryUnescape(r.URL.Query().Get(queryKey))
+	return queryVal
 }
 
 // errorResponse 异常响应

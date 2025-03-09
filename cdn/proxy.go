@@ -35,18 +35,14 @@ func (p *Proxy) CaddyModule() caddy.ModuleInfo {
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	var file = path.Base(r.URL.Path)
-	var process = r.URL.Query().Get("x-oss-process")
-	var key = getParam(r, "x-encrypt-key", "key")
-	if key == "" {
-		token := getParam(r, "x-access-token", "token")
-		claims, err := jwtParser.Decode(token)
-		if err != nil {
-			errorResponse(err, w)
-			return next.ServeHTTP(w, r)
-		}
-		var user = int(claims["user_id"].(float64))
-		key = fmt.Sprintf(encryptKey, user)
+	var token = getParam(r, "x-access-token", "token")
+	claims, err := jwtParser.Decode(token)
+	if err != nil {
+		errorResponse(err, w)
+		return next.ServeHTTP(w, r)
 	}
+	var key = fmt.Sprintf(encryptKey, int(claims["user_id"].(float64)))
+	var process = getParam(r, "x-oss-process", "x-oss-process")
 	if file[0:1] <= "k" { // 图片
 		if res, err := getObject(r.URL.Path[1:], key); err != nil {
 			errorResponse(err, w)
@@ -138,7 +134,8 @@ func parseSize(long string) (int, error) {
 	if long == "" {
 		return 0, nil
 	}
-	return strconv.Atoi(long)
+	var ss = strings.Split(long, "&")
+	return strconv.Atoi(ss[0])
 }
 
 func decrypt(key, ciphertext []byte) ([]byte, error) {
