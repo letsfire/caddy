@@ -12,7 +12,10 @@ type JwtParser struct {
 
 func (p *JwtParser) Decode(s string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(s, p.keyFunc)
-	return token.Claims.(jwt.MapClaims), err
+	if err != nil {
+		return jwt.MapClaims{}, err
+	}
+	return token.Claims.(jwt.MapClaims), nil
 }
 
 func NewJwtParser(keyFile string) (*JwtParser, error) {
