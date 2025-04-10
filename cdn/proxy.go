@@ -10,7 +10,6 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/davidbyttow/govips/v2/vips"
 	"io"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -157,7 +156,6 @@ func decrypt(key, ciphertext []byte) ([]byte, error) {
 }
 
 func thumbnail(data []byte, size int) ([]byte, error) {
-	size = int(math.Max(float64(size), 240))
 	img, err := vips.NewImageFromBuffer(data)
 	if err == nil {
 		err = img.ThumbnailWithSize(size, size, vips.InterestingNone, vips.SizeDown)
