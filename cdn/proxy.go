@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-var sizeMap = map[string]int{"thumb": 320, "hd": 1600}
+var sizeMap = map[string]int{".thumb": 320, ".hd": 1600}
 
 func init() {
 	vips.Startup(nil)
@@ -40,7 +40,8 @@ func (p *Proxy) CaddyModule() caddy.ModuleInfo {
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	var file = path.Base(r.URL.Path)
-	var resize = filepath.Ext(file)[1:]
+	var resize = filepath.Ext(file)
+	var object = r.URL.Path[1 : len(r.URL.Path)-len(resize)]
 	if _, ok := sizeMap[resize]; !ok {
 		errorResponse(fmt.Errorf("invalid %s", resize), w)
 		return next.ServeHTTP(w, r)
@@ -59,7 +60,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	}
 	var key = getParam(r, "x-encrypt-key", "key")
 	if file[0:1] <= "k" { // 图片
-		if res, err := getObject(r.URL.Path[1:], key); err != nil {
+		if res, err := getObject(object, key); err != nil {
 			errorResponse(err, w)
 		} else {
 			res, err = thumbnail(res, sizeMap[resize])
@@ -72,7 +73,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 			}
 		}
 	} else { // 视频
-		if cover, err := videoCover(r.URL.Path[1:], key); err != nil {
+		if cover, err := videoCover(object, key); err != nil {
 			errorResponse(err, w)
 		} else if res, err := getObject(cover, key); err != nil {
 			errorResponse(err, w)
