@@ -1,6 +1,8 @@
 package cdn
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -8,9 +10,16 @@ import (
 	"net/url"
 )
 
+var hash = md5.New()
 var jwtParser *JwtParser
 var ossBucket *oss.Bucket
-var encryptKey string
+
+// MD5 计算MD5值
+func MD5(str string) string {
+	hash.Reset()
+	hash.Write([]byte(str))
+	return hex.EncodeToString(hash.Sum(nil))
+}
 
 // getParam 从header或query获取参数值
 func getParam(r *http.Request, headerKey string, queryKey string) string {
