@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -23,7 +22,7 @@ import (
 	"strings"
 )
 
-var sizeMap = map[string]int{".thumb": 320, ".hd": 1600}
+var sizeMap = map[string]int{".thumb": 320, ".hd": 1600, ".raw": 0}
 
 func init() {
 	vips.Startup(nil)
@@ -59,14 +58,18 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 		}
 	}
 	var key = getParam(r, "x-encrypt-key", "key")
-	if file[0:1] <= "k" { // 图片
+	if sizeMap[resize] == 0 { // 原始
+		if res, err := getObject(object, key); err != nil {
+			errorResponse(err, w)
+		} else {
+			_, _ = w.Write(res)
+		}
+	} else if file[0:1] <= "k" { // 图片
 		if res, err := getObject(object, key); err != nil {
 			errorResponse(err, w)
 		} else {
 			res, err = thumbnail(res, sizeMap[resize])
 			if err != nil {
-				errorResponse(err, w)
-			} else if res, err = encrypt(key, res); err != nil {
 				errorResponse(err, w)
 			} else {
 				_, _ = w.Write(res)
@@ -78,8 +81,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 		} else if res, err := getObject(cover, key); err != nil {
 			errorResponse(err, w)
 		} else if res, err = thumbnail(res, sizeMap[resize]); err != nil {
-			errorResponse(err, w)
-		} else if res, err = encrypt(key, res); err != nil {
 			errorResponse(err, w)
 		} else {
 			_, _ = w.Write(res)
@@ -143,21 +144,6 @@ func decrypt(key string, ciphertext []byte) ([]byte, error) {
 	plaintext := make([]byte, len(ciphertext)-16)
 	stream.XORKeyStream(plaintext, ciphertext[16:])
 	return plaintext, nil
-}
-
-func encrypt(key string, plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher([]byte(MD5(key)))
-	if err != nil {
-		return nil, fmt.Errorf("%s - %s", err, key)
-	}
-	iv := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, fmt.Errorf("iv error: %v", err)
-	}
-	stream := cipher.NewCTR(block, iv)
-	ciphertext := make([]byte, len(plaintext))
-	stream.XORKeyStream(ciphertext, plaintext)
-	return append(iv, ciphertext...), nil
 }
 
 func thumbnail(data []byte, size int) ([]byte, error) {
