@@ -53,7 +53,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp
 	} else {
 		// ID格式编码：a25041******
 		var userId = strconv.Itoa(int(claims["user_id"].(float64)))
-		if strings.HasPrefix(file[6:], userId) == false { // 非本人
+		if strings.HasPrefix(file[7:], userId) == false { // 非本人
 			errorResponse(fmt.Errorf("user forbidden"), w)
 			return next.ServeHTTP(w, r)
 		}
