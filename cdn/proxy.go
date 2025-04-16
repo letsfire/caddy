@@ -40,7 +40,7 @@ func (p *Proxy) CaddyModule() caddy.ModuleInfo {
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	var file = path.Base(r.URL.Path)
-	var resize = filepath.Ext(file)
+	var resize = filepath.Ext(file)[1:]
 	if _, ok := sizeMap[resize]; !ok {
 		errorResponse(fmt.Errorf("invalid %s", resize), w)
 		return next.ServeHTTP(w, r)
