@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -146,6 +147,21 @@ func decrypt(key string, ciphertext []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+func encrypt(key string, plaintext []byte) ([]byte, error) {
+	block, err := aes.NewCipher([]byte(MD5(key)))
+	if err != nil {
+		return nil, fmt.Errorf("%s - %s", err, key)
+	}
+	iv := make([]byte, 16)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, fmt.Errorf("iv error: %v", err)
+	}
+	stream := cipher.NewCTR(block, iv)
+	ciphertext := make([]byte, len(plaintext))
+	stream.XORKeyStream(ciphertext, plaintext)
+	return append(iv, ciphertext...), nil
+}
+
 func thumbnail(data []byte, size int) ([]byte, error) {
 	img, err := vips.NewImageFromBuffer(data)
 	if err == nil {
@@ -182,12 +198,14 @@ func videoCover(object, key string) (string, error) {
 		)
 		cmd.Stdout = out
 		cmd.Stdin = bytes.NewReader(res)
-		if err := cmd.Run(); err != nil {
+		if err = cmd.Run(); err != nil {
 			return cover, err
 		} else if out.Len() == 0 {
 			return cover, fmt.Errorf("ffmpeg output empty")
+		} else if data, err := encrypt(key, out.Bytes()); err != nil {
+			return cover, err
 		} else {
-			return cover, ossBucket.PutObject(cover, out)
+			return cover, ossBucket.PutObject(cover, bytes.NewReader(data))
 		}
 	}
 }
